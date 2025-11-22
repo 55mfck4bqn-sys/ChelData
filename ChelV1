@@ -1,0 +1,15 @@
+import requests
+
+BASE = "https://proclubs.ea.com/api/nhl"
+
+def get_club_info(platform: str, club_id: int):
+    url = f"{BASE}/clubs/{club_id}?platform={platform}"
+    resp = requests.get(url)
+    resp.raise_for_status()
+    return resp.json()
+
+def search_club(platform: str, club_name: str):
+    url = f"{BASE}/clubs/search?platform={platform}&clubName={club_name}"
+    resp = requests.get(url)
+    resp.raise_for_status()
+    return resp.json()

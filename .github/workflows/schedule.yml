@@ -1,0 +1,32 @@
+name: nhl-proclubs-scrape
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # every hour at minute 0; change if needed
+  workflow_dispatch:      # allow manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    env:
+      CLUB_ID: 26863
+      PLATFORM: common-gen5
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        run: |
+          python fetch_and_store.py

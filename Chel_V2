@@ -1,0 +1,86 @@
+import requests
+import time
+import sqlite3  # or use PostgreSQL / Supabase
+
+PLATFORM = "common-gen5"  # adjust to the platform you need
+
+def fetch_club_info(club_name):
+    url = "https://proclubs.ea.com/api/nhl/clubs/search"
+    params = {"platform": PLATFORM, "clubName": club_name}
+    headers = {"Referer": "https://www.ea.com"}  # might be needed
+    resp = requests.get(url, params=params, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def fetch_club_stats(club_id):
+    url = "https://proclubs.ea.com/api/nhl/clubs/stats"
+    params = {"clubIds": club_id, "platform": PLATFORM}
+    headers = {"Referer": "https://www.ea.com"}
+    resp = requests.get(url, params=params, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def fetch_match_history(club_id, match_type="gameType5"):
+    url = "https://proclubs.ea.com/api/nhl/clubs/matches"
+    params = {"platform": PLATFORM, "clubIds": club_id, "matchType": match_type}
+    headers = {"Referer": "https://www.ea.com"}
+    resp = requests.get(url, params=params, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
+
+def main():
+    conn = sqlite3.connect("nhl_clubs.db")
+    c = conn.cursor()
+    # Create simple tables; you can expand fields as needed
+    c.execute("""
+      CREATE TABLE IF NOT EXISTS clubs (
+        club_id INTEGER PRIMARY KEY,
+        name TEXT
+      )
+    """)
+    c.execute("""
+      CREATE TABLE IF NOT EXISTS club_stats (
+        club_id INTEGER,
+        games_played INTEGER,
+        goals_for INTEGER,
+        goals_against INTEGER,
+        timestamp INTEGER,
+        PRIMARY KEY(club_id, timestamp)
+      )
+    """)
+    conn.commit()
+
+    # Example: fetch one club
+    club_name = "MyClub"  # replace with actual
+    info = fetch_club_info(club_name)
+    print("Club Info:", info)
+    # Assume info["clubs"][0] exists:
+    club = info["clubs"][0]
+    club_id = club["clubId"]
+    club_display_name = club["clubName"]
+    c.execute("INSERT OR IGNORE INTO clubs (club_id, name) VALUES (?, ?)",
+              (club_id, club_display_name))
+
+    # Stats
+    stats = fetch_club_stats(club_id)
+    print("Stats JSON:", stats)
+    # parse out the fields you need:
+    gp = stats["data"][0]["gamesPlayed"]
+    gf = stats["data"][0]["goalsFor"]
+    ga = stats["data"][0]["goalsAgainst"]
+    timestamp = int(time.time())
+    c.execute("""
+      INSERT INTO club_stats (club_id, games_played, goals_for, goals_against, timestamp)
+      VALUES (?, ?, ?, ?, ?)
+    """, (club_id, gp, gf, ga, timestamp))
+    conn.commit()
+
+    # (Optional) match history
+    matches = fetch_match_history(club_id)
+    print("Matches:", matches)
+    # You could insert match info similarly if the JSON provides it
+
+    conn.close()
+
+if __name__ == "__main__":
+    main()

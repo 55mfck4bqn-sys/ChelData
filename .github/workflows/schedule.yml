@@ -34,12 +34,6 @@ jobs:
             pip install requests supabase python-dotenv
           fi
 
-      # 👇 Debug step so we SEE what the runner has in fetch_and_store.py
-      - name: Show fetch_and_store.py snippet (timeout + retry code)
-        run: |
-          echo "---- fetch_and_store.py (snippet around get_json_with_retry) ----"
-          sed -n '60,160p' fetch_and_store.py || echo "fetch_and_store.py not found"
-
       - name: Run scraper
         run: |
           python fetch_and_store.py

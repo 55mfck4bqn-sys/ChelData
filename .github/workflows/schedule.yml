@@ -1,34 +1,45 @@
-name: nhl-proclubs-scrape
+name: nhl-proclubs-scraper
 
 on:
   schedule:
-    - cron: '0 * * * *'   # every hour at minute 0; change if needed
-  workflow_dispatch:      # allow manual trigger
+    # Every hour at minute 0 — adjust as you like
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+
     env:
       CLUB_ID: 26863
       PLATFORM: common-gen5
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install requests supabase python-dotenv
+          fi
 
-      - name: Show fetch_and_store.py snippet
+      # 👇 Debug step so we SEE what the runner has in fetch_and_store.py
+      - name: Show fetch_and_store.py snippet (timeout + retry code)
         run: |
-          echo "---- timeout snippet ----"
-          sed -n '80,140p' fetch_and_store.py
+          echo "---- fetch_and_store.py (snippet around get_json_with_retry) ----"
+          sed -n '60,160p' fetch_and_store.py || echo "fetch_and_store.py not found"
 
+      - name: Run scraper
+        run: |
+          python fetch_and_store.py

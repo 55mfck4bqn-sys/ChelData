@@ -27,6 +27,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run scraper
+      - name: Show fetch_and_store.py snippet
         run: |
-          python fetch_and_store.py
+          echo "---- timeout snippet ----"
+          sed -n '80,140p' fetch_and_store.py
+
